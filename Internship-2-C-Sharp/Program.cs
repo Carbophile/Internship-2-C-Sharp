@@ -2,54 +2,12 @@
 
 namespace Internship_2_C_Sharp;
 
-public class User
-{
-    private static int _nextId = 1;
-    
-    public int Id { get; }
-    public string FName { get; set; }
-    public string LName { get; set; }
-    public DateTime DOB { get; set; }
-    public List<Trip> Trips { get; }
-
-    public User(string fName, string lName, DateTime dob)
-    {
-        Id = _nextId++;
-        FName = fName;
-        LName = lName;
-        DOB = dob;
-        Trips = new List<Trip>();
-    }
-}
-
-public class Trip
-{
-    private static int _nextId = 1;
-    
-    public int Id { get; }
-    public User User { get; }
-    public DateTime Date { get; set; }
-    public decimal Distance { get; set; }
-    public decimal FuelConsumed { get; set; }
-    public decimal FuelCost { get; set; }
-    public decimal TotalCost => FuelConsumed * FuelCost;
-    
-    public Trip(User user, DateTime date, decimal distance, decimal fuelConsumed, decimal fuelCost)
-    {
-        Id = _nextId++;
-        User = user;
-        Date = date;
-        Distance = distance;
-        FuelConsumed = fuelConsumed;
-        FuelCost = fuelCost;
-    }
-}
-
-
 public static class Program
 {
-    private static readonly List<User> Users = [];
-    private static readonly List<Trip> Trips = [];
+    private static readonly List<(int Id, string FName, string LName, DateTime DOB)> Users = [];
+    private static readonly List<(int Id, int UserId, DateTime Date, decimal Distance, decimal FuelConsumed, decimal FuelCost)> Trips = [];
+    private static int _nextUserId = 1;
+    private static int _nextTripId = 1;
     
     public static void Main()
     {
@@ -221,7 +179,7 @@ public static class Program
                 switch (Console.ReadLine())
                 {
                     case "1":
-                        Users.Add(new User(fName, lName, dOB));
+                        Users.Add((_nextUserId++, fName, lName, dOB));
                         
                         Console.Clear();
                         
@@ -247,7 +205,7 @@ public static class Program
         {
             Console.Clear();
 
-            User? userToDelete = null;
+            (int Id, string FName, string LName, DateTime DOB)? userToDelete = null;
 
             Console.WriteLine("1 - Brisanje po imenu i prezimenu");
             Console.WriteLine("2 - Brisanje po ID-u");
@@ -352,15 +310,15 @@ public static class Program
                 Console.Clear();
                 
                 Console.WriteLine(
-                    $"ID: {userToDelete.Id}\nIme: {userToDelete.FName}\nPrezime: {userToDelete.LName}\nDatum rođenja: {userToDelete.DOB:yyyy-MM-dd}");
+                    $"ID: {userToDelete.Value.Id}\nIme: {userToDelete.Value.FName}\nPrezime: {userToDelete.Value.LName}\nDatum rođenja: {userToDelete.Value.DOB:yyyy-MM-dd}");
                 Console.WriteLine("1 - Potvrdi brisanje");
                 Console.WriteLine("0 - Odustani od brisanja");
 
                 switch (Console.ReadLine())
                 {
                     case "1":
-                        Users.Remove(userToDelete);
-                        Trips.RemoveAll(t => t.User == userToDelete);
+                        Users.Remove(userToDelete.Value);
+                        Trips.RemoveAll(t => t.UserId == userToDelete.Value.Id);
                         
                         Console.Clear();
                         
@@ -400,9 +358,9 @@ public static class Program
                 continue;
             }
             
-            User? userToEdit = Users.FirstOrDefault(u => u.Id == id);
+            var userToEdit = Users.FirstOrDefault(u => u.Id == id);
             
-            if (userToEdit == null)
+            if (userToEdit == default)
             {
                 Console.Clear();
                 
@@ -411,7 +369,7 @@ public static class Program
                 continue;
             }
             
-            User tempUser = new User(userToEdit.FName, userToEdit.LName, userToEdit.DOB);
+            var tempUser = userToEdit;
 
             while (true)
             {
@@ -486,9 +444,11 @@ public static class Program
 
                         continue;
                     case "0":
-                        userToEdit.FName = tempUser.FName;
-                        userToEdit.LName = tempUser.LName;
-                        userToEdit.DOB = tempUser.DOB;
+                        var userIndex = Users.FindIndex(u => u.Id == userToEdit.Id);
+                        if (userIndex != -1)
+                        {
+                            Users[userIndex] = tempUser;
+                        }
                         
                         Console.Clear();
                         
@@ -524,11 +484,10 @@ public static class Program
             {
                 case "1":
                     var sortedUsers = Users.OrderBy(u => u.LName).ThenBy(u => u.FName).ToList();
+                    Console.Clear();
                     foreach (var user in sortedUsers)
                     {
-                        Console.Clear();
-
-                        Console.WriteLine($"{user.Id} - {user.FName} - {user.LName} - {user.DOB}");
+                        Console.WriteLine($"{user.Id} - {user.FName} - {user.LName} - {user.DOB:yyyy-MM-dd}");
                     }
                     
                     Console.WriteLine("Pritisnite bilo koju tipku za povratak na izbornik korisnika.");
@@ -541,11 +500,10 @@ public static class Program
                         .OrderBy(u => u.LName)
                         .ThenBy(u => u.FName)
                         .ToList();
+                    Console.Clear();
                     foreach (var user in usersOlderThan20)
                     {
-                        Console.Clear();
-
-                        Console.WriteLine($"{user.Id} - {user.FName} - {user.LName} - {user.DOB}");
+                        Console.WriteLine($"{user.Id} - {user.FName} - {user.LName} - {user.DOB:yyyy-MM-dd}");
                     }
                     
                     Console.WriteLine("Pritisnite bilo koju tipku za povratak na izbornik korisnika.");
@@ -554,16 +512,15 @@ public static class Program
                     break;
                 case "3":
                     var usersWithAtLeast2Trips = Users
-                        .Where(u => u.Trips.Count >= 2)
+                        .Where(u => Trips.Count(t => t.UserId == u.Id) >= 2)
                         .OrderBy(u => u.LName)
                         .ThenBy(u => u.FName)
                         .ToList();
+                    Console.Clear();
                     foreach (var user in usersWithAtLeast2Trips)
                     {
-                        Console.Clear();
-
                         Console.WriteLine(
-                            $"{user.Id} - {user.FName} - {user.LName} - {user.DOB} - Broj putovanja: {user.Trips.Count}");
+                            $"{user.Id} - {user.FName} - {user.LName} - {user.DOB:yyyy-MM-dd} - Broj putovanja: {Trips.Count(t => t.UserId == user.Id)}");
                     }
                     
                     Console.WriteLine("Pritisnite bilo koju tipku za povratak na izbornik korisnika.");
@@ -630,7 +587,7 @@ public static class Program
         {
             Console.Clear();
 
-            User? user;
+            (int Id, string FName, string LName, DateTime DOB) user;
             DateTime date;
             decimal distance;
             decimal fuelConsumed;
@@ -657,9 +614,9 @@ public static class Program
                     continue;
                 }
                 
-                user = Users.FirstOrDefault(u => u.Id == userId);
+                var foundUser = Users.FirstOrDefault(u => u.Id == userId);
                 
-                if (user == null)
+                if (foundUser == default)
                 {
                     Console.Clear();
                     
@@ -667,6 +624,7 @@ public static class Program
                     Console.ReadKey();
                     continue;
                 }
+                user = foundUser;
                 
                 break;
             }
@@ -788,9 +746,7 @@ public static class Program
                 switch (Console.ReadLine())
                 {
                     case "1":
-                        Trip newTrip = new Trip(user, date, distance, fuelConsumed, fuelCost);
-                        user.Trips.Add(newTrip);
-                        Trips.Add(newTrip);
+                        Trips.Add((_nextTripId++, user.Id, date, distance, fuelConsumed, fuelCost));
 
                         Console.Clear();
 
@@ -844,15 +800,14 @@ public static class Program
                         continue;
                     }
 
-                    Trip? tripToDelete = Trips.FirstOrDefault(t => t.Id == tripId);
-                    if (tripToDelete == null)
+                    var tripToDelete = Trips.FirstOrDefault(t => t.Id == tripId);
+                    if (tripToDelete == default)
                     {
                         Console.WriteLine("Putovanje nije pronađeno. Pritisnite bilo koju tipku za nastavak.");
                         Console.ReadKey();
                         continue;
                     }
 
-                    tripToDelete.User.Trips.Remove(tripToDelete);
                     Trips.Remove(tripToDelete);
                     Console.WriteLine("Putovanje uspješno obrisano. Pritisnite bilo koju tipku za nastavak.");
                     Console.ReadKey();
@@ -867,12 +822,7 @@ public static class Program
                         continue;
                     }
 
-                    var tripsToRemoveCheaper = Trips.Where(t => t.TotalCost < amountCheaper).ToList();
-                    foreach (var trip in tripsToRemoveCheaper)
-                    {
-                        trip.User.Trips.Remove(trip);
-                    }
-                    int countCheaper = Trips.RemoveAll(t => t.TotalCost < amountCheaper);
+                    int countCheaper = Trips.RemoveAll(t => (t.FuelConsumed * t.FuelCost) < amountCheaper);
                     
                     Console.WriteLine($"{countCheaper} putovanja obrisano. Pritisnite bilo koju tipku za nastavak.");
                     Console.ReadKey();
@@ -887,12 +837,7 @@ public static class Program
                         continue;
                     }
                     
-                    var tripsToRemoveMoreExpensive = Trips.Where(t => t.TotalCost > amountMoreExpensive).ToList();
-                    foreach (var trip in tripsToRemoveMoreExpensive)
-                    {
-                        trip.User.Trips.Remove(trip);
-                    }
-                    int countMoreExpensive = Trips.RemoveAll(t => t.TotalCost > amountMoreExpensive);
+                    int countMoreExpensive = Trips.RemoveAll(t => (t.FuelConsumed * t.FuelCost) > amountMoreExpensive);
 
                     Console.WriteLine($"{countMoreExpensive} putovanja obrisano. Pritisnite bilo koju tipku za nastavak.");
                     Console.ReadKey();
@@ -923,7 +868,8 @@ public static class Program
         Console.WriteLine("Sva putovanja:");
         foreach (var trip in Trips.OrderBy(t => t.Id))
         {
-            Console.WriteLine($"ID: {trip.Id}, Korisnik: {trip.User.FName} {trip.User.LName}, Datum: {trip.Date:yyyy-MM-dd}, Cijena: {trip.TotalCost:C}");
+            var user = Users.First(u => u.Id == trip.UserId);
+            Console.WriteLine($"ID: {trip.Id}, Korisnik: {user.FName} {user.LName}, Datum: {trip.Date:yyyy-MM-dd}, Cijena: {(trip.FuelConsumed * trip.FuelCost):C}");
         }
 
         Console.WriteLine("\nUnesite ID putovanja koje želite urediti (ili 0 za odustajanje): ");
@@ -937,20 +883,21 @@ public static class Program
             return;
         }
 
-        Trip? tripToEdit = Trips.FirstOrDefault(t => t.Id == tripId);
-        if (tripToEdit == null)
+        var tripToEdit = Trips.FirstOrDefault(t => t.Id == tripId);
+        if (tripToEdit == default)
         {
             Console.WriteLine("Putovanje nije pronađeno. Pritisnite bilo koju tipku za nastavak.");
             Console.ReadKey();
             return;
         }
 
-        Trip tempTrip = new Trip(tripToEdit.User, tripToEdit.Date, tripToEdit.Distance, tripToEdit.FuelConsumed, tripToEdit.FuelCost);
+        var tempTrip = tripToEdit;
+        var tripUser = Users.First(u => u.Id == tripToEdit.UserId);
 
         while (true)
         {
             Console.Clear();
-            Console.WriteLine($"Korisnik: {tripToEdit.User.FName} {tripToEdit.User.LName} (ne može se mijenjati)");
+            Console.WriteLine($"Korisnik: {tripUser.FName} {tripUser.LName} (ne može se mijenjati)");
             Console.WriteLine($"(1) Datum: {tempTrip.Date:yyyy-MM-dd}\n(2) Udaljenost: {tempTrip.Distance}\n(3) Potrošeno gorivo: {tempTrip.FuelConsumed}\n(4) Cijena goriva: {tempTrip.FuelCost}\n(0) Spremi i izađi\n(-1) Odustani");
 
             switch (Console.ReadLine())
@@ -988,10 +935,11 @@ public static class Program
                     Console.ReadKey();
                     break;
                 case "0":
-                    tripToEdit.Date = tempTrip.Date;
-                    tripToEdit.Distance = tempTrip.Distance;
-                    tripToEdit.FuelConsumed = tempTrip.FuelConsumed;
-                    tripToEdit.FuelCost = tempTrip.FuelCost;
+                    var tripIndex = Trips.FindIndex(t => t.Id == tripToEdit.Id);
+                    if (tripIndex != -1)
+                    {
+                        Trips[tripIndex] = tempTrip;
+                    }
                     Console.WriteLine("Promjene spremljene. Pritisnite bilo koju tipku za nastavak.");
                     Console.ReadKey();
                     return;
@@ -1036,7 +984,7 @@ public static class Program
             string? orderChoice = Console.ReadLine();
             bool ascending = orderChoice == "1";
 
-            List<Trip> sortedTrips = Trips;
+            List<(int Id, int UserId, DateTime Date, decimal Distance, decimal FuelConsumed, decimal FuelCost)> sortedTrips = Trips;
 
             switch (sortChoice)
             {
@@ -1044,7 +992,7 @@ public static class Program
                     sortedTrips = ascending ? sortedTrips.OrderBy(t => t.Id).ToList() : sortedTrips.OrderByDescending(t => t.Id).ToList();
                     break;
                 case "2":
-                    sortedTrips = ascending ? sortedTrips.OrderBy(t => t.TotalCost).ToList() : sortedTrips.OrderByDescending(t => t.TotalCost).ToList();
+                    sortedTrips = ascending ? sortedTrips.OrderBy(t => t.FuelConsumed * t.FuelCost).ToList() : sortedTrips.OrderByDescending(t => t.FuelConsumed * t.FuelCost).ToList();
                     break;
                 case "3":
                     sortedTrips = ascending ? sortedTrips.OrderBy(t => t.Distance).ToList() : sortedTrips.OrderByDescending(t => t.Distance).ToList();
@@ -1062,7 +1010,7 @@ public static class Program
             
             foreach (var trip in sortedTrips)
             {
-                Console.WriteLine($"Putovanje #{trip.Id}\nDatum: {trip.Date:yyyy-MM-dd}\nKilometri: {trip.Distance}\nGorivo: {trip.FuelConsumed} L\nCijena po litri: {trip.FuelCost:C} \nUkupno: {trip.TotalCost:C}"); 
+                Console.WriteLine($"Putovanje #{trip.Id}\nDatum: {trip.Date:yyyy-MM-dd}\nKilometri: {trip.Distance}\nGorivo: {trip.FuelConsumed} L\nCijena po litri: {trip.FuelCost:C} \nUkupno: {(trip.FuelConsumed * trip.FuelCost):C}"); 
             }
             
             Console.WriteLine("\nPritisnite bilo koju tipku za povratak na odabir sortiranja.");
@@ -1104,16 +1052,18 @@ public static class Program
                 continue;
             }
 
-            User? selectedUser = Users.FirstOrDefault(u => u.Id == userId);
+            var selectedUser = Users.FirstOrDefault(u => u.Id == userId);
 
-            if (selectedUser == null)
+            if (selectedUser == default)
             {
                 Console.WriteLine("Korisnik nije pronađen. Pritisnite bilo koju tipku za ponovni pokušaj.");
                 Console.ReadKey();
                 continue;
             }
+            
+            var userTrips = Trips.Where(t => t.UserId == selectedUser.Id).ToList();
 
-            if (selectedUser.Trips.Count == 0)
+            if (userTrips.Count == 0)
             {
                 Console.WriteLine("Odabrani korisnik nema unesenih putovanja. Pritisnite bilo koju tipku za povratak.");
                 Console.ReadKey();
@@ -1134,22 +1084,22 @@ public static class Program
                 switch (Console.ReadLine())
                 {
                     case "1":
-                        decimal totalFuel = selectedUser.Trips.Sum(t => t.FuelConsumed);
+                        decimal totalFuel = userTrips.Sum(t => t.FuelConsumed);
                         Console.Clear();
                         Console.WriteLine($"Ukupna potrošnja goriva: {totalFuel} L");
                         Console.WriteLine("\nPritisnite bilo koju tipku za nastavak.");
                         Console.ReadKey();
                         continue;
                     case "2":
-                        decimal totalCost = selectedUser.Trips.Sum(t => t.TotalCost);
+                        decimal totalCost = userTrips.Sum(t => t.FuelConsumed * t.FuelCost);
                         Console.Clear();
                         Console.WriteLine($"Ukupni troškovi goriva: {totalCost:C}");
                         Console.WriteLine("\nPritisnite bilo koju tipku za nastavak.");
                         Console.ReadKey();
                         continue;
                     case "3":
-                        decimal totalFuelForAvg = selectedUser.Trips.Sum(t => t.FuelConsumed);
-                        decimal totalDistance = selectedUser.Trips.Sum(t => t.Distance);
+                        decimal totalFuelForAvg = userTrips.Sum(t => t.FuelConsumed);
+                        decimal totalDistance = userTrips.Sum(t => t.Distance);
                         Console.Clear();
                         if (totalDistance > 0)
                         {
@@ -1164,12 +1114,12 @@ public static class Program
                         Console.ReadKey();
                         continue;
                     case "4":
-                        Trip? tripWithHighestConsumption = selectedUser.Trips.OrderByDescending(t => t.FuelConsumed).FirstOrDefault();
+                        var tripWithHighestConsumption = userTrips.OrderByDescending(t => t.FuelConsumed).FirstOrDefault();
                         Console.Clear();
-                        if (tripWithHighestConsumption != null)
+                        if (tripWithHighestConsumption != default)
                         {
                             Console.WriteLine("Putovanje s najvećom potrošnjom goriva:");
-                            Console.WriteLine($"ID: {tripWithHighestConsumption.Id}, Datum: {tripWithHighestConsumption.Date:yyyy-MM-dd}, Udaljenost: {tripWithHighestConsumption.Distance} km, Potrošeno gorivo: {tripWithHighestConsumption.FuelConsumed} L, Ukupni trošak: {tripWithHighestConsumption.TotalCost:C}");
+                            Console.WriteLine($"ID: {tripWithHighestConsumption.Id}, Datum: {tripWithHighestConsumption.Date:yyyy-MM-dd}, Udaljenost: {tripWithHighestConsumption.Distance} km, Potrošeno gorivo: {tripWithHighestConsumption.FuelConsumed} L, Ukupni trošak: {(tripWithHighestConsumption.FuelConsumed * tripWithHighestConsumption.FuelCost):C}");
                         }
                         Console.WriteLine("\nPritisnite bilo koju tipku za nastavak.");
                         Console.ReadKey();
@@ -1180,14 +1130,14 @@ public static class Program
                         string? dateInput = Console.ReadLine();
                         if (DateTime.TryParseExact(dateInput, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime searchDate))
                         {
-                            var tripsOnDate = selectedUser.Trips.Where(t => t.Date.Date == searchDate.Date).ToList();
+                            var tripsOnDate = userTrips.Where(t => t.Date.Date == searchDate.Date).ToList();
                             Console.Clear();
                             if (tripsOnDate.Any())
                             {
                                 Console.WriteLine($"Putovanja na dan {searchDate:yyyy-MM-dd}:");
                                 foreach (var trip in tripsOnDate)
                                 {
-                                    Console.WriteLine($"ID: {trip.Id}, Udaljenost: {trip.Distance} km, Potrošeno gorivo: {trip.FuelConsumed} L, Ukupni trošak: {trip.TotalCost:C}");
+                                    Console.WriteLine($"ID: {trip.Id}, Udaljenost: {trip.Distance} km, Potrošeno gorivo: {trip.FuelConsumed} L, Ukupni trošak: {(trip.FuelConsumed * trip.FuelCost):C}");
                                 }
                             }
                             else
@@ -1260,7 +1210,7 @@ public static class Program
         else
         {
             var userCosts = Users
-                .Select(u => new { User = u, TotalCost = u.Trips.Sum(t => t.TotalCost) })
+                .Select(u => new { User = u, TotalCost = Trips.Where(t => t.UserId == u.Id).Sum(t => t.FuelConsumed * t.FuelCost) })
                 .ToList();
 
             var maxCost = userCosts.Max(uc => uc.TotalCost);
@@ -1275,7 +1225,7 @@ public static class Program
                 Console.WriteLine("Korisnik(i) s najvećim ukupnim troškom goriva:");
                 foreach (var u in topUsers)
                 {
-                    Console.WriteLine($"ID: {u.Id}, {u.FName} {u.LName} - Ukupni trošak: {u.Trips.Sum(t => t.TotalCost):C} - Broj putovanja: {u.Trips.Count}");
+                    Console.WriteLine($"ID: {u.Id}, {u.FName} {u.LName} - Ukupni trošak: {Trips.Where(t => t.UserId == u.Id).Sum(t => t.FuelConsumed * t.FuelCost):C} - Broj putovanja: {Trips.Count(t => t.UserId == u.Id)}");
                 }
             }
         }
@@ -1293,10 +1243,13 @@ public static class Program
         }
         else
         {
-            User? userWithMostTrips = Users.OrderByDescending(u => u.Trips.Count).FirstOrDefault();
-            if (userWithMostTrips != null && userWithMostTrips.Trips.Count > 0)
+            var userWithMostTrips = Users.Select(u => new { User = u, TripCount = Trips.Count(t => t.UserId == u.Id) })
+                                         .OrderByDescending(x => x.TripCount)
+                                         .FirstOrDefault();
+
+            if (userWithMostTrips != null && userWithMostTrips.TripCount > 0)
             {
-                Console.WriteLine($"Korisnik s najviše putovanja: {userWithMostTrips.FName} {userWithMostTrips.LName} ({userWithMostTrips.Trips.Count} putovanja)");
+                Console.WriteLine($"Korisnik s najviše putovanja: {userWithMostTrips.User.FName} {userWithMostTrips.User.LName} ({userWithMostTrips.TripCount} putovanja)");
             }
             else
             {
@@ -1316,7 +1269,7 @@ public static class Program
         }
         else
         {
-            int totalTrips = Users.Sum(u => u.Trips.Count);
+            int totalTrips = Trips.Count;
             decimal average = Users.Count > 0 ? (decimal)totalTrips / Users.Count : 0m;
             Console.WriteLine($"Prosječan broj putovanja po korisniku: {average:F2}");
             Console.WriteLine($"Ukupan broj putovanja: {totalTrips}");
@@ -1340,46 +1293,6 @@ public static class Program
             Console.WriteLine($"Ukupan broj prijeđenih kilometara svih korisnika: {totalDistance} km");
         }
 
-        Console.WriteLine("\nPritisnite bilo koju tipku za nastavak.");
-        Console.ReadKey();
-    }
-
-    private static void ShowTripWithHighestConsumption()
-    {
-        Console.Clear();
-        if (Trips.Count == 0)
-        {
-            Console.WriteLine("Nema unesenih putovanja.");
-        }
-        else
-        {
-            Trip? trip = Trips.OrderByDescending(t => t.FuelConsumed).FirstOrDefault();
-            if (trip != null)
-            {
-                Console.WriteLine("Putovanje s najvećom potrošnjom goriva:");
-                Console.WriteLine($"ID: {trip.Id}, Korisnik: {trip.User.FName} {trip.User.LName}, Datum: {trip.Date:yyyy-MM-dd}, Potrošeno gorivo: {trip.FuelConsumed} L");
-            }
-        }
-        Console.WriteLine("\nPritisnite bilo koju tipku za nastavak.");
-        Console.ReadKey();
-    }
-
-    private static void ShowMostExpensiveTrip()
-    {
-        Console.Clear();
-        if (Trips.Count == 0)
-        {
-            Console.WriteLine("Nema unesenih putovanja.");
-        }
-        else
-        {
-            Trip? trip = Trips.OrderByDescending(t => t.TotalCost).FirstOrDefault();
-            if (trip != null)
-            {
-                Console.WriteLine("Najskuplje putovanje:");
-                Console.WriteLine($"ID: {trip.Id}, Korisnik: {trip.User.FName} {trip.User.LName}, Datum: {trip.Date:yyyy-MM-dd}, Ukupni trošak: {trip.TotalCost:C}");
-            }
-        }
         Console.WriteLine("\nPritisnite bilo koju tipku za nastavak.");
         Console.ReadKey();
     }
