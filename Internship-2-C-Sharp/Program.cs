@@ -1,9 +1,34 @@
 ﻿namespace Internship_2_C_Sharp;
 
+public class User
+{
+    public int Id { get; set; }
+    public string FName { get; set; }
+    public string LName { get; set; }
+    public DateTime DOB { get; set; }
+    public List<Trip> Trips { get; set; }
+        
+}
+
+public class Trip
+{
+    public int Id { get; set; }
+    public DateTime Date { get; set; }
+    public decimal Distance { get; set; }
+    public decimal FuelConsumed { get; set; }
+    public decimal FuelCost { get; set; }
+    public decimal TotalCost => FuelConsumed * FuelCost;
+}
+
+
 public static class Program
 {
+    private static List<User> users = new List<User>();
+    private static int nextUserId = 0;
+    private static int nextTripId = 0;
     public static void Main()
     {
+        
         while (true)
         {
             Console.Clear();
