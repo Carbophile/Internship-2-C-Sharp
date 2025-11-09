@@ -11,6 +11,17 @@ public static class Program
     
     public static void Main()
     {
+        Users.Add((1, "John", "Doe", new DateTime(1990, 5, 15)));
+        Users.Add((2, "Jane", "Smith", new DateTime(1985, 10, 20)));
+        Users.Add((3, "Peter", "Jones", new DateTime(2000, 1, 30)));
+        _nextUserId = 4;
+
+        Trips.Add((1, 1, new DateTime(2025, 10, 1), 150, 10, 1.5m));
+        Trips.Add((2, 1, new DateTime(2025, 10, 15), 200, 15, 1.6m));
+        Trips.Add((3, 2, new DateTime(2025, 10, 5), 100, 8, 1.55m));
+        Trips.Add((4, 2, new DateTime(2025, 10, 25), 300, 25, 1.65m));
+        Trips.Add((5, 3, new DateTime(2025, 11, 1), 50, 4, 1.7m));
+        _nextTripId = 6;
         
         while (true)
         {
