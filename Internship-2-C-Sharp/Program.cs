@@ -144,6 +144,8 @@ public static class Program
                 case "0":
                     return;
             }
+            
+            Console.WriteLine("Neispravan unos, pokusajte ponovo!");
         }
     }
     
